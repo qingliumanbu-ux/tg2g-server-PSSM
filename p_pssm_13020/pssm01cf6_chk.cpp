@@ -1,0 +1,175 @@
+/*************************************************
+Copyright: Baosight Software LTD.co Copyright (c) 2010
+Author:   chejs
+Version:    1.0
+Date:     2015-09-10 17:13:56
+Description: 炼钢计划编制（PSSM01）-预计划编制后的规程校验
+**************************************************/
+
+/***** C++ 的标准头文件部分 *****/
+#include "stdafx.h"
+
+/***** C++ 的业务头文件部分 *****/
+
+
+
+
+
+
+//-----------------------------------------------------------------------
+//功能描述:		预计划编制后的规程校验
+//数据库表:     TPSSM01
+//表中文名:     炼钢连铸制造命令炉次表
+//主调用函数:   前台 PSSM21画面(制造命令编制)调用
+//需调用函数:   f_pssm01_chk_capa
+//-----------------------------------------------------------------------
+//函数功能:     预计划编制后的规程校验
+//传入参数:     
+//传出参数:     
+//处理流程:     
+//1.根据前台传入连铸机号, 生产日期进行查询
+//=========================================================================*/
+
+// service入口
+BM2F_ENTERACE(pssm01cf6_chk)
+
+int f_pssm01cf6_chk(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection * conn)
+{
+	CTracer log(__FUNCTION__);
+
+	/* ***** 自定义变量 ***** */
+	int doFlag = 0;
+	int ret = 0;
+	int i = 0;
+	int rows = 0;
+	int chk_flag = 0;  //chk_flag=0: 没有违规; chk_flag=1:有违规;
+	int num_wk = 0; //规程校验不合的记录数量
+	CString date_Now = CDateTime::Now().ToString("yyyyMMddHHmmss");
+	CString sqlstr = "";
+	CString station_name = ""; //设备名称
+	CDecimal limit_capa = 0; //限制炉数
+	CDecimal plan_charge = 0; //计划炉数
+
+	CModel tpssm01("TPSSM01");
+	CModel tpssm23("TPSSM23");
+
+	/* 数据库操作类定义 */
+	CDbCommand cmd_tpssm23_inq(conn);  //与DB 建立连接。
+
+	try
+	{
+		//设定返回块的参数
+		bcls_ret->Tables[0].set_TableName("NUM_WK");  //返回块
+		bcls_ret->Tables[0].Columns.Add(DT_INT32, "num_wk"); //规程校验不合的记录数量
+		bcls_ret->Tables[0].Rows.Add();
+
+		//----------------------------------------------------------------------
+		//获取传入参数
+		tpssm01.MergeFrom(bcls_rec->Tables[0].Rows[0]);
+
+		/* ***** 打印输入参数 ***** */
+		////Log::Info("", __FUNCTION__, "pssm21_chk>FACTORY_DIV = [{0}]", tpssm01["FACTORY_DIV"].ToString());
+		////Log::Info("", __FUNCTION__, "pssm21_chk>CC_MACH_NO = [{0}]", tpssm01["CC_MACH_NO"].ToString());
+		////Log::Info("", __FUNCTION__, "pssm21_chk>PLAN_DATE = [{0}]", tpssm01["PLAN_DATE"].ToString());
+
+		switch (conn->DatabaseKind)
+		{
+		case DB_KIND_DB2:				// DB2 数据库（未开Oracle兼容）
+		case DB_KIND_DB2_ORACLE:	    // DB2 数据库（开Oracle兼容）
+		case DB_KIND_MSSQL:				// MS SQL Server数据库
+		case DB_KIND_ORACLE:	        // Oracle 数据库
+		default:
+			sqlstr = " DELETE FROM TPSSM23 "
+				"WHERE FACTORY_DIV = @FACTORY_DIV "
+				"AND PLAN_DATE = @PLAN_DATE ";
+			break;
+		}
+		cmd_tpssm23_inq.SetCommandText(sqlstr);
+		cmd_tpssm23_inq.Parameters.Set("FACTORY_DIV", tpssm01["FACTORY_DIV"].ToString());
+		cmd_tpssm23_inq.Parameters.Set("PLAN_DATE", tpssm01["PLAN_DATE"].ToString());
+		cmd_tpssm23_inq.ExecuteNonQuery();
+		cmd_tpssm23_inq.Close();
+
+		tpssm23["SEQ_NO"] = 0; //序号
+
+	
+		
+	/*		////Log::Info("", __FUNCTION__, "成功调用f_pssm01_chk_capa函数");
+
+			rows = bcls_ret->Tables[0].Rows.get_Count();
+			////Log::Info("", __FUNCTION__, "rows = [{0}]", rows);
+
+			for (i = 0; i < rows - 1; i++) //注意减1，函数里是i++
+			{
+				////Log::Info("", __FUNCTION__, "---------[{0}]----------", i);
+
+				chk_flag = bcls_ret->Tables[0].Rows[i]["chk_flag"]; //违规标记
+				station_name = bcls_ret->Tables[0].Rows[i]["station_name"].ToString(); //设备名称
+				limit_capa = bcls_ret->Tables[0].Rows[i]["limit_capa"]; //限制炉数
+				plan_charge = bcls_ret->Tables[0].Rows[i]["plan_charge"]; //计划炉数
+
+				////Log::Info("", __FUNCTION__, "chk_flag = [{0}]", chk_flag);
+				////Log::Info("", __FUNCTION__, "station_name = [{0}]", station_name);
+				////Log::Info("", __FUNCTION__, "limit_capa = [{0}]", limit_capa);
+				////Log::Info("", __FUNCTION__, "plan_charge = [{0}]", plan_charge);
+
+				if (chk_flag == 1)
+				{
+					tpssm23["ERR_CODE"] = "4";//4-日计划炉数大于日作业能力
+					//tpssm23["ERR_DESC"] = CString::Format("工序[%s]的计划炉数[%d]超出当日的生产能力[%d]炉", station_name, plan_charge.ToInt32(), limit_capa.ToInt32());
+					CFormattable arguments[] = { station_name, plan_charge, limit_capa };
+					CMessageFormat::Format(s.msg, "工序[{0}]的计划炉数[{1}]超出当日的生产能力[{2}]炉", arguments, 3);
+					tpssm23["ERR_DESC"] = s.msg;
+
+					tpssm23["SEQ_NO"] = tpssm23["SEQ_NO"].ToDecimal() + 1;
+
+					tpssm23["FACTORY_DIV"] = tpssm01["FACTORY_DIV"];
+					tpssm23["PLAN_DATE"] = tpssm01["PLAN_DATE"];
+
+					tpssm23["REC_CREATE_TIME"] = date_Now;
+					tpssm23["REC_CREATOR"] = s.userid;
+					tpssm23["REC_REVISE_TIME"] = date_Now;
+					tpssm23["REC_REVISOR"] = s.userid;
+					tpssm23["COMPANY_CODE"] = s.company_code;
+					tpssm23["COMPANY_NAME"] = s.company_name;
+
+					sqlstr = "tpssm23.Insert(4)";
+					tpssm23.Insert();
+
+				}
+			}
+		
+		*/
+		//----------------------------------------------------------------------
+		//统计校验的结果记录数量，供前台画面对话框用
+		tpssm23["FACTORY_DIV"] = tpssm01["FACTORY_DIV"];
+		tpssm23["PLAN_DATE"] = tpssm01["PLAN_DATE"];
+		num_wk = tpssm23.QueryCount("FACTORY_DIV,PLAN_DATE");
+		////Log::Info("", __FUNCTION__, "num_wk = [{0}]", num_wk);
+
+		bcls_ret->Tables[0].Rows[0]["num_wk"] = num_wk;
+	}
+	catch (CDbException& ex)  //捕获数据库操作异常
+	{
+		CFormattable arguments[] = { ex.GetCode() };
+		CMessageFormat::Format(s.msg, _RES("GCRSS0000006")/*数据库处理出错，sqlcode=[{0}]。请联系系统维护人员。*/, arguments, 1);
+		CString str = sqlstr + "\r\n" + ex.GetMsg();
+		strncpy(s.sysmsg, (const char*)str, sizeof(s.sysmsg) - 1);
+		s.flag = -1;
+		doFlag = -1;      //数据库异常时返回-1，事务将被回滚
+	}
+	catch (CApplicationException& ex)  //捕获应用错误
+	{
+		s.flag = ex.GetCode();
+		doFlag = -1;
+	}
+	catch (CException& ex)
+	{
+		strncpy(s.msg, (const char*)ex.GetMsg(), sizeof(s.msg) - 1);
+		s.flag = ex.GetCode();
+		doFlag = -1;
+	}
+
+	return doFlag;
+
+}
