@@ -475,7 +475,13 @@ int f_pssm_compute_time(CString unit_code,CString plan_date,CString cc_mach_no,C
 		//CDateTime::Now().ToString("yyyyMMddHHmmss");
 		tpssmerrm["ERROR_EVENT_DATE"] = CString(s.datetime).Substring(0,8);
 		CDbCommand cmd_query_tc_seq_no(conn);
-		cmd_query_tc_seq_no.SetCommandText("SELECT  SUBSTR(TO_CHAR(current timestamp,'yyyymmddhh24missff6'),1,20)  from sysibm.sysdummy1; ");
+		// DM8 适配 CHANGE-122：取当前时间戳格式化为 yyyyMMddhh24missff6(微秒精度)后取前 20 位;DB2 特殊寄存器 current timestamp 改为 DM 的 CURRENT_TIMESTAMP,SYSIBM 辅助表改 DUAL。
+		// 改写原因:DM 官方函数手册支持 CURRENT_TIMESTAMP;FF1-FF9 为官方日期格式元素(FF6=微秒);TO_CHAR 仅取日期时间字段,与 DB2 current timestamp 输出等价;DM8 尚未实测。
+		// 内联语句,无 DB_KIND 分支;返回列与读取方式(GetString(1))保持不变。
+		// 原 SQL（完整保留）：
+		// cmd_query_tc_seq_no.SetCommandText("SELECT  SUBSTR(TO_CHAR(current timestamp,'yyyymmddhh24missff6'),1,20)  from sysibm.sysdummy1; ");
+		// DM8 SQL：
+		cmd_query_tc_seq_no.SetCommandText("SELECT  SUBSTR(TO_CHAR(CURRENT_TIMESTAMP,'yyyymmddhh24missff6'),1,20)  from DUAL; ");
 		cmd_query_tc_seq_no.ExecuteReader();
 		if (cmd_query_tc_seq_no.Read()) 
 		{

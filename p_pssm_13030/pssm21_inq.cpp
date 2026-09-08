@@ -119,12 +119,28 @@ int f_pssm21_inq(EIClass * bcls_rec, EIClass * bcls_ret,CDbConnection * conn)
 
 		if(check_flag == "1")
 		{
+// DM8 适配 CHANGE-123:查询。空值搜索 DECODE 改为标准 CASE。
+// 改写原因：空值搜索 DECODE 改为标准 CASE,不依赖 NULL 相等匹配的未记载语义；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+			// sql = " SELECT SUM(DECODE(INSTR(A.REFINE_DIV,'L'),0,0,1)) AS LF_NUM,  "
+				// " SUM(DECODE(INSTR(A.REFINE_DIV,'R'),0,0,1)) AS RH_NUM,  "
+				// " SUM(DECODE(INSTR(A.REFINE_DIV,'V'),0,0,1)) AS VD_NUM,  "
+				// " SUM(DECODE(HOT_SEND_FLAG,'0',1,0)) AS XIAX_NUM,  "
+				// " SUM(DECODE(LENGTH(A.FLAME_CLEAN_DIV),0,0,1)) AS JQ_NUM,  "
+				// " SUM(DECODE(B.THIRD_OFF_FLAG,NULL,0,1)) AS TUO_NUM,  "
+				// " COUNT(1) AS PONO_NUM  "
+				// " FROM TPSSM01 A LEFT JOIN TPMOES11 B ON A.ST_NO = B.ST_NO  "
+				// " WHERE A.FACTORY_DIV	= @factory_div "
+				// "   AND A.PLAN_DATE		= @plan_date "
+				// "   AND A.CC_MACH_NO	= @cc_mach_no ";
+// DM8 SQL：
 			sql = " SELECT SUM(DECODE(INSTR(A.REFINE_DIV,'L'),0,0,1)) AS LF_NUM,  "
 				" SUM(DECODE(INSTR(A.REFINE_DIV,'R'),0,0,1)) AS RH_NUM,  "
 				" SUM(DECODE(INSTR(A.REFINE_DIV,'V'),0,0,1)) AS VD_NUM,  "
 				" SUM(DECODE(HOT_SEND_FLAG,'0',1,0)) AS XIAX_NUM,  "
 				" SUM(DECODE(LENGTH(A.FLAME_CLEAN_DIV),0,0,1)) AS JQ_NUM,  "
-				" SUM(DECODE(B.THIRD_OFF_FLAG,NULL,0,1)) AS TUO_NUM,  "
+				" SUM(CASE WHEN B.THIRD_OFF_FLAG IS NULL THEN 0 ELSE 1 END) AS TUO_NUM,  "
 				" COUNT(1) AS PONO_NUM  "
 				" FROM TPSSM01 A LEFT JOIN TPMOES11 B ON A.ST_NO = B.ST_NO  "
 				" WHERE A.FACTORY_DIV	= @factory_div "
@@ -141,12 +157,28 @@ int f_pssm21_inq(EIClass * bcls_rec, EIClass * bcls_ret,CDbConnection * conn)
 		}
 		else
 		{
+// DM8 适配 CHANGE-124:查询。空值搜索 DECODE 改为标准 CASE。
+// 改写原因：空值搜索 DECODE 改为标准 CASE,不依赖 NULL 相等匹配的未记载语义；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+			// sql = " SELECT SUM(DECODE(INSTR(A.REFINE_DIV,'L'),0,0,1)) AS LF_NUM,  "
+				// " SUM(DECODE(INSTR(A.REFINE_DIV,'R'),0,0,1)) AS RH_NUM,  "
+				// " SUM(DECODE(INSTR(A.REFINE_DIV,'V'),0,0,1)) AS VD_NUM,  "
+				// " SUM(DECODE(HOT_SEND_FLAG,'0',1,0)) AS XIAX_NUM,  "
+				// " SUM(DECODE(LENGTH(A.FLAME_CLEAN_DIV),0,0,1)) AS JQ_NUM,  "
+				// " SUM(DECODE(B.THIRD_OFF_FLAG,NULL,0,1)) AS TUO_NUM,  "
+				// " COUNT(1) AS PONO_NUM "
+				// " FROM TPSSM01 A LEFT JOIN TPMOES11 B ON A.ST_NO = B.ST_NO  "
+				// " WHERE A.FACTORY_DIV	= @factory_div "
+				// "   AND A.PLAN_DATE		= @plan_date "
+				// "   AND A.CC_MACH_NO	= @cc_mach_no ";
+// DM8 SQL：
 			sql = " SELECT SUM(DECODE(INSTR(A.REFINE_DIV,'L'),0,0,1)) AS LF_NUM,  "
 				" SUM(DECODE(INSTR(A.REFINE_DIV,'R'),0,0,1)) AS RH_NUM,  "
 				" SUM(DECODE(INSTR(A.REFINE_DIV,'V'),0,0,1)) AS VD_NUM,  "
 				" SUM(DECODE(HOT_SEND_FLAG,'0',1,0)) AS XIAX_NUM,  "
 				" SUM(DECODE(LENGTH(A.FLAME_CLEAN_DIV),0,0,1)) AS JQ_NUM,  "
-				" SUM(DECODE(B.THIRD_OFF_FLAG,NULL,0,1)) AS TUO_NUM,  "
+				" SUM(CASE WHEN B.THIRD_OFF_FLAG IS NULL THEN 0 ELSE 1 END) AS TUO_NUM,  "
 				" COUNT(1) AS PONO_NUM "
 				" FROM TPSSM01 A LEFT JOIN TPMOES11 B ON A.ST_NO = B.ST_NO  "
 				" WHERE A.FACTORY_DIV	= @factory_div "

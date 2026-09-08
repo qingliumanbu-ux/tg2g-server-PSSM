@@ -66,24 +66,48 @@ int f_pslgap03_cc_inq(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection * co
 		default:
 
 
+// DM8 适配 CHANGE-381:查询。见改写原因。
+// 改写原因：HOUR/MINUTE/SECOND 标注时长改为 DM 官方文档示例的小数天运算(时=n.0/24,分=n.0/1440,秒=n.0/86400),时间跨度保持；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+			// sqlstr = "SELECT PROD_WT_CC,HEAT_NUM_CC,STEEL_WT_CC,PROD_WT_C1,PROD_WT_C2,PROD_WT_C3 FROM(select cast(sum(b.slab_wt) "
+				// "as decimal(20, 3)) AS PROD_WT_CC, count(distinct(a.heat_no)) AS HEAT_NUM_CC  from tmmsm21 a, tmmsm33 b where "
+				// "a.heat_no = b.heat_no and a.BLOW_START_TIME1 <> ' ' and TO_CHAR((to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') "
+				// "+ 3 HOUR), 'YYYYMMDD') >= @START_TIME and TO_CHAR((to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3 HOUR), "
+				// "'YYYYMMDD') <  @END_TIME and a.FACTORY_DIV = 'A2'), (select cast(sum(b.CAST_STEEL_WT) as decimal(20, 3)) AS "
+				// "STEEL_WT_CC from tmmsm21 a, tmmsm31 b where a.heat_no = b.heat_no and a.BLOW_START_TIME1 <> ' ' and TO_CHAR(( "
+				// "to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3 HOUR), 'YYYYMMDD') >= @START_TIME and TO_CHAR((to_date( "
+				// "a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3 HOUR), 'YYYYMMDD') < @END_TIME and a.FACTORY_DIV = 'A2'), (select "
+				// "cast(sum(b.slab_wt) as decimal(20, 3)) AS PROD_WT_C1 from tmmsm21 a, tmmsm33 b where a.heat_no = b.heat_no and "
+				// "a.BLOW_START_TIME1 <> ' ' and TO_CHAR((to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3 HOUR), 'YYYYMMDD') "
+				// ">= @START_TIME and TO_CHAR((to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3 HOUR), 'YYYYMMDD') <  @END_TIME "
+				// "and a.FACTORY_DIV = 'A2' and substr(b.cast_no, 2, 1) = '5'), (select cast(sum(b.slab_wt) as decimal(20, 3)) AS "
+				// "PROD_WT_C2 from tmmsm21 a, tmmsm33 b where a.heat_no = b.heat_no and a.BLOW_START_TIME1 <> ' ' and TO_CHAR(( "
+				// "to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3 HOUR), 'YYYYMMDD') >= @START_TIME and TO_CHAR((to_date( "
+				// "a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3 HOUR), 'YYYYMMDD') <  @END_TIME and a.FACTORY_DIV = 'A2' and "
+				// "substr(b.cast_no, 2, 1) = '6'), (select cast(sum(b.slab_wt) as decimal(20, 3)) AS PROD_WT_C3 from tmmsm21 a, tmmsm33 b "
+				// "where a.heat_no = b.heat_no and a.BLOW_START_TIME1 <> ' ' and TO_CHAR((to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') "
+				// "+ 3 HOUR), 'YYYYMMDD') >= @START_TIME and TO_CHAR((to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3 HOUR), 'YYYYMMDD') "
+				// "< @END_TIME and a.FACTORY_DIV = 'A2' and substr(b.cast_no, 2, 1) = '7')";
+// DM8 SQL：
 			sqlstr = "SELECT PROD_WT_CC,HEAT_NUM_CC,STEEL_WT_CC,PROD_WT_C1,PROD_WT_C2,PROD_WT_C3 FROM(select cast(sum(b.slab_wt) "
 				"as decimal(20, 3)) AS PROD_WT_CC, count(distinct(a.heat_no)) AS HEAT_NUM_CC  from tmmsm21 a, tmmsm33 b where "
 				"a.heat_no = b.heat_no and a.BLOW_START_TIME1 <> ' ' and TO_CHAR((to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') "
-				"+ 3 HOUR), 'YYYYMMDD') >= @START_TIME and TO_CHAR((to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3 HOUR), "
+				"+ 3.0/24), 'YYYYMMDD') >= @START_TIME and TO_CHAR((to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3.0/24), "
 				"'YYYYMMDD') <  @END_TIME and a.FACTORY_DIV = 'A2'), (select cast(sum(b.CAST_STEEL_WT) as decimal(20, 3)) AS "
 				"STEEL_WT_CC from tmmsm21 a, tmmsm31 b where a.heat_no = b.heat_no and a.BLOW_START_TIME1 <> ' ' and TO_CHAR(( "
-				"to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3 HOUR), 'YYYYMMDD') >= @START_TIME and TO_CHAR((to_date( "
-				"a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3 HOUR), 'YYYYMMDD') < @END_TIME and a.FACTORY_DIV = 'A2'), (select "
+				"to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3.0/24), 'YYYYMMDD') >= @START_TIME and TO_CHAR((to_date( "
+				"a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3.0/24), 'YYYYMMDD') < @END_TIME and a.FACTORY_DIV = 'A2'), (select "
 				"cast(sum(b.slab_wt) as decimal(20, 3)) AS PROD_WT_C1 from tmmsm21 a, tmmsm33 b where a.heat_no = b.heat_no and "
-				"a.BLOW_START_TIME1 <> ' ' and TO_CHAR((to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3 HOUR), 'YYYYMMDD') "
-				">= @START_TIME and TO_CHAR((to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3 HOUR), 'YYYYMMDD') <  @END_TIME "
+				"a.BLOW_START_TIME1 <> ' ' and TO_CHAR((to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3.0/24), 'YYYYMMDD') "
+				">= @START_TIME and TO_CHAR((to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3.0/24), 'YYYYMMDD') <  @END_TIME "
 				"and a.FACTORY_DIV = 'A2' and substr(b.cast_no, 2, 1) = '5'), (select cast(sum(b.slab_wt) as decimal(20, 3)) AS "
 				"PROD_WT_C2 from tmmsm21 a, tmmsm33 b where a.heat_no = b.heat_no and a.BLOW_START_TIME1 <> ' ' and TO_CHAR(( "
-				"to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3 HOUR), 'YYYYMMDD') >= @START_TIME and TO_CHAR((to_date( "
-				"a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3 HOUR), 'YYYYMMDD') <  @END_TIME and a.FACTORY_DIV = 'A2' and "
+				"to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3.0/24), 'YYYYMMDD') >= @START_TIME and TO_CHAR((to_date( "
+				"a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3.0/24), 'YYYYMMDD') <  @END_TIME and a.FACTORY_DIV = 'A2' and "
 				"substr(b.cast_no, 2, 1) = '6'), (select cast(sum(b.slab_wt) as decimal(20, 3)) AS PROD_WT_C3 from tmmsm21 a, tmmsm33 b "
 				"where a.heat_no = b.heat_no and a.BLOW_START_TIME1 <> ' ' and TO_CHAR((to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') "
-				"+ 3 HOUR), 'YYYYMMDD') >= @START_TIME and TO_CHAR((to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3 HOUR), 'YYYYMMDD') "
+				"+ 3.0/24), 'YYYYMMDD') >= @START_TIME and TO_CHAR((to_date(a.BLOW_START_TIME1, 'YYYYMMDDHH24MISS') + 3.0/24), 'YYYYMMDD') "
 				"< @END_TIME and a.FACTORY_DIV = 'A2' and substr(b.cast_no, 2, 1) = '7')";
 
 			break;

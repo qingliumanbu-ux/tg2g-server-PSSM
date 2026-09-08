@@ -108,9 +108,17 @@ BM2_FUNCTION_EXPORT
 				//如果记录已使用的计划顺序号为空, 则将当前PONO的作业计划号写入记录表
 				tpssm27["USE_STATUS"] = "1";
 				
+				// DM8 适配 CHANGE-388（HR-003 已确认 2026-09-08）：删除无计划号的 TPSSM27 记录，SM_PLAN_NO 为 NULL、空串、纯空格三种情况一起删除。
+				// 改写原因：原写法 TRIM(SM_PLAN_NO) IS NULL 依赖"TRIM 后空串视为 NULL"的兼容行为；DM8 不同兼容模式下空串与 NULL 的处理不一致，可能漏删。
+				// 改写口径：COALESCE(LENGTH(TRIM(SM_PLAN_NO)), 0) = 0 不做空串字面量比较，任何兼容配置下三种情况都命中；分厂条件与绑定参数保持不变。
+				// 原方案A（完整保留）：
+				// sqlstr = "DELETE FROM TPSSM27 "
+				// " WHERE FACTORY_DIV = @tpssm27.FACTORY_DIV "
+				// "   AND TRIM(SM_PLAN_NO)is NULL ";
+				// 方案B（DM8 SQL）：
 				sqlstr = "DELETE FROM TPSSM27 "
 						 " WHERE FACTORY_DIV = @tpssm27.FACTORY_DIV "
-						 "   AND TRIM(SM_PLAN_NO)is NULL ";
+						 "   AND COALESCE(LENGTH(TRIM(SM_PLAN_NO)), 0) = 0 ";
 				cmd_tpssm27_del.SetCommandText(sqlstr);
 				cmd_tpssm27_del.Parameters.Set("tpssm27.FACTORY_DIV",tpssm27["FACTORY_DIV"].ToString());
 				cmd_tpssm27_del.ExecuteNonQuery();

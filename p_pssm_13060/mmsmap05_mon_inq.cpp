@@ -69,18 +69,41 @@ int f_mmsmap05_mon_inq(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection * c
 		case DB_KIND_ORACLE:	        // Oracle 数据库
 		default:
 
+// DM8 适配 CHANGE-146:查询。见改写原因。
+// 改写原因：DB2 日期天数后缀改为整数天运算；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+			// sqlstr = "select  substr(START_TIME,1,6) as MONTH,sum(OUT_STEEL_WT) AS CONS_PROD_WT FROM (select case START_TIME WHEN  "
+				// "to_date(START_TIME, 'YYYY-MM-DD HH24:MI:SS') >= to_date(CONCAT(SUBSTRING(START_TIME, 1, 8), '210000'), 'YYYY-MM-DD HH24:MI:SS') - 1 day "
+				// "AND to_date(START_TIME, 'YYYY-MM-DD HH24:MI:SS')< to_date(CONCAT(SUBSTRING(START_TIME, 1, 8), '210000'), 'YYYY-MM-DD HH24:MI:SS')  THEN "
+				// "SUBSTRING(START_TIME, 1, 8)when to_date(START_TIME, 'YYYY-MM-DD HH24:MI:SS') > to_date(CONCAT(SUBSTRING(START_TIME, 1, 8), '210000'), "
+				// "'YYYY-MM-DD HH24:MI:SS') THEN to_char(to_date(SUBSTRING(START_TIME, 1, 8), 'YYYY-MM-DD') + 1 day, 'YYYYMMDD')END AS START_TIME, "
+				// "OUT_STEEL_WT from TMMSM21 where  FACTORY_DIV = 'A1') where START_TIME like @TIME_YEAR || '%' group by substr(START_TIME, 1, 6)";
+// DM8 SQL：
 			sqlstr = "select  substr(START_TIME,1,6) as MONTH,sum(OUT_STEEL_WT) AS CONS_PROD_WT FROM (select case START_TIME WHEN  "
-				"to_date(START_TIME, 'YYYY-MM-DD HH24:MI:SS') >= to_date(CONCAT(SUBSTRING(START_TIME, 1, 8), '210000'), 'YYYY-MM-DD HH24:MI:SS') - 1 day "
+				"to_date(START_TIME, 'YYYY-MM-DD HH24:MI:SS') >= to_date(CONCAT(SUBSTRING(START_TIME, 1, 8), '210000'), 'YYYY-MM-DD HH24:MI:SS') - 1 "
 				"AND to_date(START_TIME, 'YYYY-MM-DD HH24:MI:SS')< to_date(CONCAT(SUBSTRING(START_TIME, 1, 8), '210000'), 'YYYY-MM-DD HH24:MI:SS')  THEN "
 				"SUBSTRING(START_TIME, 1, 8)when to_date(START_TIME, 'YYYY-MM-DD HH24:MI:SS') > to_date(CONCAT(SUBSTRING(START_TIME, 1, 8), '210000'), "
-				"'YYYY-MM-DD HH24:MI:SS') THEN to_char(to_date(SUBSTRING(START_TIME, 1, 8), 'YYYY-MM-DD') + 1 day, 'YYYYMMDD')END AS START_TIME, "
+				"'YYYY-MM-DD HH24:MI:SS') THEN to_char(to_date(SUBSTRING(START_TIME, 1, 8), 'YYYY-MM-DD') + 1, 'YYYYMMDD')END AS START_TIME, "
 				"OUT_STEEL_WT from TMMSM21 where  FACTORY_DIV = 'A1') where START_TIME like @TIME_YEAR || '%' group by substr(START_TIME, 1, 6)";
 
+// DM8 适配 CHANGE-147:查询。见改写原因。
+// 改写原因：DB2 日期天数后缀改为整数天运算；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+			// sqlstr1 = "select substr(START_TIME, 1, 6) as MONTH, sum(SLAB_WT) AS SLAB_PROD_WT FROM(select case START_TIME WHEN  "
+				// "to_date(START_TIME, 'YYYY-MM-DD HH24:MI:SS') >= to_date(CONCAT(SUBSTRING(START_TIME, 1, 8), '210000'), 'YYYY-MM-DD HH24:MI:SS') - 1 day "
+				// "AND to_date(START_TIME, 'YYYY-MM-DD HH24:MI:SS')< to_date(CONCAT(SUBSTRING(START_TIME, 1, 8), '210000'), 'YYYY-MM-DD HH24:MI:SS') THEN "
+				// "SUBSTRING(START_TIME, 1, 8) when to_date(START_TIME, 'YYYY-MM-DD HH24:MI:SS') > to_date(CONCAT(SUBSTRING(START_TIME, 1, 8), '210000'), "
+				// "'YYYY-MM-DD HH24:MI:SS') THEN to_char(to_date(SUBSTRING(START_TIME, 1, 8), 'YYYY-MM-DD') + 1 day, 'YYYYMMDD')END AS START_TIME, SLAB_WT "
+				// "from(select a.SLAB_WT, a.STATION_NO, a.START_TIME from TMMSM33 a, TMMSM31 b where a.HEAT_NO = b.HEAT_NO and a.FACTORY_DIV = 'A1')) "
+				// "where START_TIME like @TIME_YEAR || '%' group by substr(START_TIME, 1, 6)";
+// DM8 SQL：
 			sqlstr1 = "select substr(START_TIME, 1, 6) as MONTH, sum(SLAB_WT) AS SLAB_PROD_WT FROM(select case START_TIME WHEN  "
-				"to_date(START_TIME, 'YYYY-MM-DD HH24:MI:SS') >= to_date(CONCAT(SUBSTRING(START_TIME, 1, 8), '210000'), 'YYYY-MM-DD HH24:MI:SS') - 1 day "
+				"to_date(START_TIME, 'YYYY-MM-DD HH24:MI:SS') >= to_date(CONCAT(SUBSTRING(START_TIME, 1, 8), '210000'), 'YYYY-MM-DD HH24:MI:SS') - 1 "
 				"AND to_date(START_TIME, 'YYYY-MM-DD HH24:MI:SS')< to_date(CONCAT(SUBSTRING(START_TIME, 1, 8), '210000'), 'YYYY-MM-DD HH24:MI:SS') THEN "
 				"SUBSTRING(START_TIME, 1, 8) when to_date(START_TIME, 'YYYY-MM-DD HH24:MI:SS') > to_date(CONCAT(SUBSTRING(START_TIME, 1, 8), '210000'), "
-				"'YYYY-MM-DD HH24:MI:SS') THEN to_char(to_date(SUBSTRING(START_TIME, 1, 8), 'YYYY-MM-DD') + 1 day, 'YYYYMMDD')END AS START_TIME, SLAB_WT "
+				"'YYYY-MM-DD HH24:MI:SS') THEN to_char(to_date(SUBSTRING(START_TIME, 1, 8), 'YYYY-MM-DD') + 1, 'YYYYMMDD')END AS START_TIME, SLAB_WT "
 				"from(select a.SLAB_WT, a.STATION_NO, a.START_TIME from TMMSM33 a, TMMSM31 b where a.HEAT_NO = b.HEAT_NO and a.FACTORY_DIV = 'A1')) "
 				"where START_TIME like @TIME_YEAR || '%' group by substr(START_TIME, 1, 6)";
 

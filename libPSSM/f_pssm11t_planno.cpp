@@ -166,11 +166,28 @@ int f_pssm11t_planno(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection *conn
 		case DB_KIND_MSSQL:         // MS SQL Server数据库
 		case DB_KIND_ORACLE:        // Oracle 数据库
 		default:  // 所有数据库适用，通用SQL语句
+// DM8 适配 CHANGE-117:查询。空值搜索 DECODE 改为标准 CASE。
+// 改写原因：空值搜索 DECODE 改为标准 CASE,不依赖 NULL 相等匹配的未记载语义；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+			// sqlstr = CString(
+				// " SELECT PONO, A FROM "
+				// " (  SELECT MIN(START_TIME) A, PONO FROM "
+				// "    ( "
+				// "      SELECT DECODE( TRIM(START_TIME_REAL), NULL, START_TIME, START_TIME_REAL) START_TIME, PONO FROM TPSSM12 "
+				// "       WHERE FACTORY_DIV = TRIM(@tpssm11.FACTORY_DIV) "
+				// "         AND AREA_ID = 3  "
+				// "    ) "
+				// "    GROUP BY PONO "
+				// " ) "
+				// " ORDER BY A ASC "
+				// );  //此逻辑比较复杂，可以用如下简单的
+// DM8 SQL：
 			sqlstr = CString(
 				" SELECT PONO, A FROM "
 				" (  SELECT MIN(START_TIME) A, PONO FROM "
 				"    ( "
-				"      SELECT DECODE( TRIM(START_TIME_REAL), NULL, START_TIME, START_TIME_REAL) START_TIME, PONO FROM TPSSM12 "
+				"      SELECT CASE WHEN TRIM(START_TIME_REAL) IS NULL THEN START_TIME ELSE START_TIME_REAL END START_TIME, PONO FROM TPSSM12 "
 				"       WHERE FACTORY_DIV = TRIM(@tpssm11.FACTORY_DIV) "
 				"         AND AREA_ID = 3  "
 				"    ) "

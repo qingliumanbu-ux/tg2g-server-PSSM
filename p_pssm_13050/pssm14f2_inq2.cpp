@@ -114,8 +114,22 @@ int f_pssm14f2_inq2(EIClass * bcls_rec, EIClass * bcls_ret,CDbConnection * conn)
 
 		if (strand_num > 2)//方坯
 		{
+// DM8 适配 CHANGE-128:查询。空值搜索 DECODE 改为标准 CASE。
+// 改写原因：空值搜索 DECODE 改为标准 CASE,不依赖 NULL 相等匹配的未记载语义；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+			// sqlstr =
+				// " SELECT A.*, DECODE(B.CAST_NO, NULL, '未编制', B.CAST_NO||'-'||B.CAST_DIV_NO) CAST_NO, B.CAST_PONO_SUM, C.CAST_LOT_NO, C.ST_NO, DECODE(B.CAST_NO, NULL, '未编制', B.CAST_NO) CAST_NO_1, B.CAST_DIV_NO"
+				// " FROM TPSSM03 A"
+				// " LEFT JOIN TPSSM11 B ON A.PONO = B.PONO"
+				// " JOIN TPSSM01 C ON A.PONO = C.PONO AND C.CC_MACH_NO = @CC_MACH_NO"
+				// " WHERE 1=1"
+				// " AND C.CAST_LOT_NO = @CAST_LOT_NO"
+				// " ORDER BY A.STRAND_NO, A.STRAND_NUM, A.SLAB_SEQ_2"
+				// ;
+// DM8 SQL：
 			sqlstr =
-				" SELECT A.*, DECODE(B.CAST_NO, NULL, '未编制', B.CAST_NO||'-'||B.CAST_DIV_NO) CAST_NO, B.CAST_PONO_SUM, C.CAST_LOT_NO, C.ST_NO, DECODE(B.CAST_NO, NULL, '未编制', B.CAST_NO) CAST_NO_1, B.CAST_DIV_NO"
+				" SELECT A.*, CASE WHEN B.CAST_NO IS NULL THEN '未编制' ELSE B.CAST_NO||'-'||B.CAST_DIV_NO END CAST_NO, B.CAST_PONO_SUM, C.CAST_LOT_NO, C.ST_NO, CASE WHEN B.CAST_NO IS NULL THEN '未编制' ELSE B.CAST_NO END CAST_NO_1, B.CAST_DIV_NO"
 				" FROM TPSSM03 A"
 				" LEFT JOIN TPSSM11 B ON A.PONO = B.PONO"
 				" JOIN TPSSM01 C ON A.PONO = C.PONO AND C.CC_MACH_NO = @CC_MACH_NO"
@@ -134,8 +148,22 @@ int f_pssm14f2_inq2(EIClass * bcls_rec, EIClass * bcls_ret,CDbConnection * conn)
 		{
 			if (tpssm01["FACTORY_DIV"].ToString() == "C31")
 			{
+// DM8 适配 CHANGE-129:查询。空值搜索 DECODE 改为标准 CASE。
+// 改写原因：空值搜索 DECODE 改为标准 CASE,不依赖 NULL 相等匹配的未记载语义；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+				// sqlstr =
+					// " SELECT A.*, DECODE(B.CAST_NO, NULL, '未编制', B.CAST_NO||'-'||B.CAST_DIV_NO) CAST_NO, B.CAST_PONO_SUM, C.CAST_LOT_NO, C.ST_NO, DECODE(B.CAST_NO, NULL, '未编制', B.CAST_NO) CAST_NO_1, B.CAST_DIV_NO"
+					// " FROM TPSSM03 A"
+					// " JOIN TPSSM11 B ON A.PONO = B.PONO"
+					// " LEFT JOIN TPSSM01 C ON A.PONO = C.PONO"
+					// " WHERE B.CAST_PONO_SUM = @CAST_PONO_SUM"
+					// " AND A.STRAND_NO = @STRAND_NO"
+					// " ORDER BY A.STRAND_NO, A.STRAND_NUM, A.SLAB_SEQ_2"
+					// ;
+// DM8 SQL：
 				sqlstr =
-					" SELECT A.*, DECODE(B.CAST_NO, NULL, '未编制', B.CAST_NO||'-'||B.CAST_DIV_NO) CAST_NO, B.CAST_PONO_SUM, C.CAST_LOT_NO, C.ST_NO, DECODE(B.CAST_NO, NULL, '未编制', B.CAST_NO) CAST_NO_1, B.CAST_DIV_NO"
+					" SELECT A.*, CASE WHEN B.CAST_NO IS NULL THEN '未编制' ELSE B.CAST_NO||'-'||B.CAST_DIV_NO END CAST_NO, B.CAST_PONO_SUM, C.CAST_LOT_NO, C.ST_NO, CASE WHEN B.CAST_NO IS NULL THEN '未编制' ELSE B.CAST_NO END CAST_NO_1, B.CAST_DIV_NO"
 					" FROM TPSSM03 A"
 					" JOIN TPSSM11 B ON A.PONO = B.PONO"
 					" LEFT JOIN TPSSM01 C ON A.PONO = C.PONO"
@@ -150,8 +178,23 @@ int f_pssm14f2_inq2(EIClass * bcls_rec, EIClass * bcls_ret,CDbConnection * conn)
 					|| (tpssm01["SLAB_DEST"].ToString() == "90" && tpssm01["LINE_TYPE"].ToString() == "HP")
 					)//厚板按炉
 				{
+// DM8 适配 CHANGE-130:查询。空值搜索 DECODE 改为标准 CASE。
+// 改写原因：空值搜索 DECODE 改为标准 CASE,不依赖 NULL 相等匹配的未记载语义；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+					// sqlstr =
+						// " SELECT A.*, DECODE(B.CAST_NO, NULL, '未编制', B.CAST_NO||'-'||B.CAST_DIV_NO) CAST_NO, B.CAST_PONO_SUM, C.CAST_LOT_NO, C.ST_NO, DECODE(B.CAST_NO, NULL, '未编制', B.CAST_NO) CAST_NO_1, B.CAST_DIV_NO"
+						// " FROM TPSSM03 A"
+						// " JOIN TPSSM11 B ON A.PONO = B.PONO"
+						// " JOIN TPSSM01 C ON A.PONO = C.PONO"
+						// " WHERE 1=1"
+						// " AND B.CAST_PONO_SUM = @CAST_PONO_SUM"
+						// " AND A.STRAND_NO = @STRAND_NO"
+						// " AND STEEL_RETURN_CODE = ' '"
+						// " ORDER BY B.CAST_NO, B.CAST_DIV_NO, B.PONO, A.STRAND_NUM, A.SLAB_SEQ_1"
+// DM8 SQL：
 					sqlstr =
-						" SELECT A.*, DECODE(B.CAST_NO, NULL, '未编制', B.CAST_NO||'-'||B.CAST_DIV_NO) CAST_NO, B.CAST_PONO_SUM, C.CAST_LOT_NO, C.ST_NO, DECODE(B.CAST_NO, NULL, '未编制', B.CAST_NO) CAST_NO_1, B.CAST_DIV_NO"
+						" SELECT A.*, CASE WHEN B.CAST_NO IS NULL THEN '未编制' ELSE B.CAST_NO||'-'||B.CAST_DIV_NO END CAST_NO, B.CAST_PONO_SUM, C.CAST_LOT_NO, C.ST_NO, CASE WHEN B.CAST_NO IS NULL THEN '未编制' ELSE B.CAST_NO END CAST_NO_1, B.CAST_DIV_NO"
 						" FROM TPSSM03 A"
 						" JOIN TPSSM11 B ON A.PONO = B.PONO"
 						" JOIN TPSSM01 C ON A.PONO = C.PONO"
@@ -165,8 +208,23 @@ int f_pssm14f2_inq2(EIClass * bcls_rec, EIClass * bcls_ret,CDbConnection * conn)
 				}
 				else
 				{
+// DM8 适配 CHANGE-131:查询。空值搜索 DECODE 改为标准 CASE。
+// 改写原因：空值搜索 DECODE 改为标准 CASE,不依赖 NULL 相等匹配的未记载语义；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+					// sqlstr =
+						// " SELECT A.*, DECODE(B.CAST_NO, NULL, '未编制', B.CAST_NO||'-'||B.CAST_DIV_NO) CAST_NO, B.CAST_PONO_SUM, C.CAST_LOT_NO, C.ST_NO, DECODE(B.CAST_NO, NULL, '未编制', B.CAST_NO) CAST_NO_1, B.CAST_DIV_NO"
+						// " FROM TPSSM03 A"
+						// " LEFT JOIN TPSSM11 B ON A.PONO = B.PONO"
+						// " JOIN TPSSM01 C ON A.PONO = C.PONO AND C.CC_MACH_NO = @CC_MACH_NO"
+						// " WHERE 1=1"
+						// " AND C.CAST_LOT_NO = @CAST_LOT_NO"
+						// " AND A.STRAND_NO = @STRAND_NO"
+						// " ORDER BY A.STRAND_NUM, A.SLAB_SEQ_2"
+						// ;
+// DM8 SQL：
 					sqlstr =
-						" SELECT A.*, DECODE(B.CAST_NO, NULL, '未编制', B.CAST_NO||'-'||B.CAST_DIV_NO) CAST_NO, B.CAST_PONO_SUM, C.CAST_LOT_NO, C.ST_NO, DECODE(B.CAST_NO, NULL, '未编制', B.CAST_NO) CAST_NO_1, B.CAST_DIV_NO"
+						" SELECT A.*, CASE WHEN B.CAST_NO IS NULL THEN '未编制' ELSE B.CAST_NO||'-'||B.CAST_DIV_NO END CAST_NO, B.CAST_PONO_SUM, C.CAST_LOT_NO, C.ST_NO, CASE WHEN B.CAST_NO IS NULL THEN '未编制' ELSE B.CAST_NO END CAST_NO_1, B.CAST_DIV_NO"
 						" FROM TPSSM03 A"
 						" LEFT JOIN TPSSM11 B ON A.PONO = B.PONO"
 						" JOIN TPSSM01 C ON A.PONO = C.PONO AND C.CC_MACH_NO = @CC_MACH_NO"

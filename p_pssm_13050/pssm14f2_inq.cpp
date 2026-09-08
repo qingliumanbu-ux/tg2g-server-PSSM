@@ -79,13 +79,39 @@ int f_pssm14f2_inq(EIClass * bcls_rec, EIClass * bcls_ret,CDbConnection * conn)
 			//浇次信息查询SQL语句
 			sqlstr_temp = "";
 			sqlstr_temp_order = "";
+// DM8 适配 CHANGE-127:查询。空值搜索 DECODE 改为标准 CASE。
+// 改写原因：空值搜索 DECODE 改为标准 CASE,不依赖 NULL 相等匹配的未记载语义；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+			// sqlstr =
+				// " SELECT A.CC_MACH_NO, A.CAST_NO, A.CAST_PONO_SUM, B.CAST_LOT_NO, MAX(B.SLAB_DEST) SLAB_DEST,"
+				// /*" CASE WHEN"
+				// " (MAX(B.SLAB_DEST) >= '21' AND MAX(B.SLAB_DEST) <= '25')"
+				// " OR (MAX(B.SLAB_DEST) = '90' AND MAX(B.LINE_TYPE) = 'HP')"
+				// " THEN '厚板模式' ELSE '薄板模式' END AS PLAN_TYPE,"*/
+				// " DECODE(MAX(C.CC_MACH_NO), NULL, ' ', '浇注中') CUR_POUR,"
+				// " COUNT(A.SM_PLAN_NO) CAST_PONO_SUM, MAX(B1.LOT_NUM) LOT_NUM,"
+				// " (LISTAGG(DISTINCT A.ST_NO,'*') WITHIN GROUP (ORDER BY A.ST_NO)) ST_NO,"
+				// " (LISTAGG(DISTINCT B.SG_SIGN,'*') WITHIN GROUP (ORDER BY B.SG_SIGN)) SG_SIGN,"
+				// " A.CC_MACH_NO"
+				// " FROM TPSSM11 A"
+				// " LEFT JOIN TPSSM26 C ON A.CAST_NO = C.CAST_NO AND A.CAST_DIV_NO = C.CAST_DIV_NO AND A.RUN_STATUS = '52'"
+				// " LEFT JOIN TPSSM01 B ON A.PONO = B.PONO"
+				// " LEFT JOIN"
+				// " (SELECT CAST_LOT_NO, CC_MACH_NO, COUNT(PONO) LOT_NUM FROM TPSSM10 GROUP BY CC_MACH_NO, CAST_LOT_NO"
+				// " )B1 ON B.CAST_LOT_NO = B1.CAST_LOT_NO AND B1.CC_MACH_NO = A.CC_MACH_NO"
+				// " WHERE 1 = 1"
+				// " AND A.RUN_STATUS < '53'"
+				// " AND A.CAST_NO IN (SELECT CAST_NO FROM TPSSM11 WHERE  PONO_STATUS >= 20)"
+				// ;
+// DM8 SQL：
 			sqlstr =
 				" SELECT A.CC_MACH_NO, A.CAST_NO, A.CAST_PONO_SUM, B.CAST_LOT_NO, MAX(B.SLAB_DEST) SLAB_DEST,"
 				/*" CASE WHEN"
 				" (MAX(B.SLAB_DEST) >= '21' AND MAX(B.SLAB_DEST) <= '25')"
 				" OR (MAX(B.SLAB_DEST) = '90' AND MAX(B.LINE_TYPE) = 'HP')"
 				" THEN '厚板模式' ELSE '薄板模式' END AS PLAN_TYPE,"*/
-				" DECODE(MAX(C.CC_MACH_NO), NULL, ' ', '浇注中') CUR_POUR,"
+				" CASE WHEN MAX(C.CC_MACH_NO) IS NULL THEN ' ' ELSE '浇注中' END CUR_POUR,"
 				" COUNT(A.SM_PLAN_NO) CAST_PONO_SUM, MAX(B1.LOT_NUM) LOT_NUM,"
 				" (LISTAGG(DISTINCT A.ST_NO,'*') WITHIN GROUP (ORDER BY A.ST_NO)) ST_NO,"
 				" (LISTAGG(DISTINCT B.SG_SIGN,'*') WITHIN GROUP (ORDER BY B.SG_SIGN)) SG_SIGN,"
